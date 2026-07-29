@@ -2,49 +2,205 @@
 # ==========================================================
 # ScoutCore
 # Pramuka Information System
-# Version : 0.5.1
+# Version : 0.5.4
 # ==========================================================
 
 import customtkinter as ctk
 from tkinter import ttk, messagebox
 
-from database import create_database, ambil_semua_siswa, jumlah_siswa
+from database import (
+    create_database,
+    ambil_semua_siswa,
+    jumlah_siswa,
+    tambah_siswa,
+    update_siswa,
+    cek_jumlah_siswa
+)
 from import_excel import import_excel
 
 ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("blue")
 
+
+
+# ==========================================================
+# Sprint v0.5.4
+# TODO:
+# - Search realtime
+# - Filter kelas
+# - Jumlah Data
+# - Hasil Filter
+# ==========================================================
+
 create_database()
 
 app = ctk.CTk()
-app.title("ScoutCore - Pramuka Information System v0.5.1")
+app.title("ScoutCore - Pramuka Information System v0.5.4")
 app.geometry("1280x720")
 
 tree = None
 lbl_jumlah = None
+lbl_filter = None
 content = None
 
+entry_search = None
 
-def refresh_treeview():
+search_var = ctk.StringVar()
+kelas_var = ctk.StringVar(value="Semua")
+
+
+def refresh_treeview(data=None):
     global tree, lbl_jumlah
+
     if tree is None:
         return
 
-    for item in tree.get_children():
-        tree.delete(item)
+    keyword = search_var.get().strip().lower()
+    kelas_filter = kelas_var.get()
 
-    for no, row in enumerate(ambil_semua_siswa(), start=1):
-        _, nisn, no_induk, nama, jk, kelas, status = row
-        tree.insert("", "end", values=(no, no_induk, nisn, nama, jk, kelas, status))
+    if data is None:
+        data = ambil_semua_siswa()
 
-    lbl_jumlah.configure(text=f"Jumlah Data : {jumlah_siswa()}")
+    hasil = []
 
+    for row in data:
+        id_siswa, nisn, no_induk, nama, jk, kelas_siswa, status = row
+
+        cocok_search = (
+            keyword == ""
+            or keyword in str(nama).lower()
+            or keyword in str(no_induk).lower()
+            or keyword in str(nisn).lower()
+        )
+
+        cocok_kelas = (
+            kelas_filter == "Semua"
+            or kelas_siswa == kelas_filter
+        )
+
+        if cocok_search and cocok_kelas:
+            hasil.append(row)
+
+    tree.delete(*tree.get_children())
+
+    for no, row in enumerate(hasil, start=1):
+        id_siswa, nisn, no_induk, nama, jk, kelas_siswa, status = row
+
+        tree.insert(
+            "",
+            "end",
+            values=(
+                no,
+                no_induk,
+                nisn,
+                nama,
+                jk,
+                kelas_siswa,
+                status
+            )
+        )
+
+    lbl_jumlah.configure(text=f"Jumlah Data : {len(hasil)}")
+def ambil_data_terpilih():
+    selected = tree.selection()
+
+    if not selected:
+        messagebox.showwarning(
+            "Peringatan",
+            "Pilih data siswa terlebih dahulu."
+        )
+        return None
+
+    id_siswa = selected[0]
+    values = tree.item(selected[0], "values")
+
+    return id_siswa, values
 
 def aksi_import():
     import_excel()
     refresh_treeview()
 
 
+def form_siswa(id_siswa=None, data=None):
+
+    win = ctk.CTkToplevel(app)
+    if id_siswa is None:
+     win.title("Tambah Data Siswa")
+    else:
+     win.title("Edit Data Siswa")
+    win.geometry("420x560")
+    win.grab_set()
+
+    # NISN
+    ctk.CTkLabel(win, text="NISN").pack(pady=(15, 0))
+    ent_nisn = ctk.CTkEntry(win, width=250)
+    ent_nisn.pack()
+
+    # No Induk
+    ctk.CTkLabel(win, text="No Induk").pack(pady=(10, 0))
+    ent_no = ctk.CTkEntry(win, width=250)
+    ent_no.pack()
+
+    # Nama
+    ctk.CTkLabel(win, text="Nama").pack(pady=(10, 0))
+    ent_nama = ctk.CTkEntry(win, width=250)
+    ent_nama.pack()
+
+    # Jenis Kelamin
+    ctk.CTkLabel(win, text="Jenis Kelamin").pack(pady=(10, 0))
+    cmb_jk = ctk.CTkComboBox(
+        win,
+        values=["L", "P"],
+        width=250
+    )
+    cmb_jk.pack()
+
+    # Kelas
+    ctk.CTkLabel(win, text="Kelas").pack(pady=(10, 0))
+    cmb_kelas = ctk.CTkComboBox(
+        win,
+        width=250,
+        values=[
+            "4 A",
+            "4 B",
+            "5 A",
+            "5 B",
+            "6 A",
+            "6 B"
+        ]
+    )
+    cmb_kelas.pack()
+
+    def simpan():
+        try:
+            tambah_siswa(
+                ent_nisn.get(),
+                ent_no.get(),
+                ent_nama.get(),
+                cmb_jk.get(),
+                cmb_kelas.get()
+            )
+
+            print("Jumlah siswa:", cek_jumlah_siswa())
+
+            refresh_treeview()
+
+            messagebox.showinfo(
+                "Berhasil",
+                "Data siswa berhasil ditambahkan."
+            )
+
+            win.destroy()
+
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    ctk.CTkButton(
+        win,
+        text="Simpan",
+        command=simpan,
+        width=200
+    ).pack(pady=20)
 def tampil_dashboard():
     for w in content.winfo_children():
         w.destroy()
@@ -88,13 +244,55 @@ def tampil_data_siswa():
                  font=("Segoe UI", 28, "bold")).pack(pady=15)
 
     tb = ctk.CTkFrame(content)
-    tb.pack(fill="x", padx=20)
+    tb.pack(fill="x", padx=20, pady=5)
 
-    for t in ("Tambah","Edit","Hapus"):
-        ctk.CTkButton(tb,text=t,width=120).pack(side="left", padx=5,pady=10)
+    # Tombol
+    ctk.CTkButton(
+    tb,
+    text="Tambah",
+    width=100,
+    command=lambda: form_siswa()
+).pack(side="left", padx=5)
+    ctk.CTkButton(
+    tb,
+    text="Edit",
+    width=100,
+    command=lambda: print(ambil_data_terpilih())
+).pack(side="left", padx=5)
+    
+    ctk.CTkButton(tb, text="Hapus", width=100).pack(side="left", padx=5)
 
-    ctk.CTkButton(tb,text="Import Excel",command=aksi_import,width=150)\
-        .pack(side="right", padx=5,pady=10)
+    # Search
+    ctk.CTkLabel(tb, text="Search :").pack(side="left", padx=(25,5))
+
+    entry_search = ctk.CTkEntry(
+        tb,
+        width=220,
+        placeholder_text="Nama / No Induk / NISN",
+        textvariable=search_var
+    )
+    entry_search.pack(side="left", padx=5)
+
+    entry_search.bind("<KeyRelease>", lambda e: refresh_treeview())
+
+    ctk.CTkLabel(tb, text="Kelas :").pack(side="left", padx=(20,5))
+
+    combo_kelas = ctk.CTkComboBox(
+        tb,
+        width=90,
+        values=["Semua", "4 A", "4 B", "5 A", "5 B", "6 A", "6 B"],
+        variable=kelas_var,
+        command=lambda x: refresh_treeview()
+    )
+    combo_kelas.pack(side="left", padx=5)
+
+    # Import Excel
+    ctk.CTkButton(
+        tb,
+        text="Import Excel",
+        command=aksi_import,
+        width=150
+    ).pack(side="right", padx=5)
 
     frame = ctk.CTkFrame(content)
     frame.pack(fill="both", expand=True, padx=20, pady=10)
@@ -116,7 +314,6 @@ def tampil_data_siswa():
     lbl_jumlah.pack(pady=(0,10))
     refresh_treeview()
 
-
 sidebar=ctk.CTkFrame(app,width=240)
 sidebar.pack(side="left",fill="y")
 
@@ -129,7 +326,7 @@ ctk.CTkLabel(sidebar,
              font=("Segoe UI",18,"bold"),
              justify="center").pack()
 
-ctk.CTkLabel(sidebar,text="Version 0.5.1").pack(pady=(5,20))
+ctk.CTkLabel(sidebar,text="Version 0.5.4").pack(pady=(5,20))
 
 menus=[
 ("Dashboard",tampil_dashboard),

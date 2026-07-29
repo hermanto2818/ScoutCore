@@ -135,3 +135,70 @@ def jumlah_siswa():
     conn.close()
 
     return jumlah
+
+def tambah_siswa(nisn, no_induk, nama, jk, kelas):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        INSERT INTO siswa
+        (
+            nisn,
+            no_induk,
+            nama,
+            jk,
+            kelas,
+            created_at,
+            updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (
+        nisn,
+        no_induk,
+        nama,
+        jk,
+        kelas,
+        datetime.now().isoformat(),
+        datetime.now().isoformat()
+    ))
+
+    conn.commit()
+    conn.close()
+
+
+def cek_jumlah_siswa():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT COUNT(*) FROM siswa")
+    jumlah = cursor.fetchone()[0]
+
+    conn.close()
+    return jumlah
+
+def update_siswa(id_siswa, nisn, no_induk, nama, jk, kelas):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE siswa
+        SET
+            nisn = ?,
+            no_induk = ?,
+            nama = ?,
+            jk = ?,
+            kelas = ?,
+            updated_at = ?
+        WHERE id = ?
+    """, (
+        nisn,
+        no_induk,
+        nama,
+        jk,
+        kelas,
+        datetime.now().isoformat(),
+        id_siswa
+    ))
+
+    conn.commit()
+    conn.close()
