@@ -14,7 +14,9 @@ from database import (
     jumlah_siswa,
     tambah_siswa,
     update_siswa,
-    cek_jumlah_siswa
+    hapus_siswa,
+    cek_jumlah_siswa,
+    ambil_siswa_by_nisn
 )
 from import_excel import import_excel
 
@@ -173,6 +175,7 @@ def form_siswa(id_siswa=None, data=None):
 
     def simpan():
         try:
+            print("JK =", cmb_jk.get())
             tambah_siswa(
                 ent_nisn.get(),
                 ent_no.get(),
@@ -257,10 +260,15 @@ def tampil_data_siswa():
     tb,
     text="Edit",
     width=100,
-    command=lambda: print(ambil_data_terpilih())
+    command=test_edit
 ).pack(side="left", padx=5)
     
-    ctk.CTkButton(tb, text="Hapus", width=100).pack(side="left", padx=5)
+    ctk.CTkButton(
+    tb,
+    text="Hapus",
+    width=100,
+    command=hapus_data_siswa
+).pack(side="left", padx=5)
 
     # Search
     ctk.CTkLabel(tb, text="Search :").pack(side="left", padx=(25,5))
@@ -327,6 +335,208 @@ ctk.CTkLabel(sidebar,
              justify="center").pack()
 
 ctk.CTkLabel(sidebar,text="Version 0.5.4").pack(pady=(5,20))
+def test_edit():
+
+    data = ambil_data_terpilih()
+
+    if data is None:
+        return
+
+    _, values = data
+
+    nisn = values[2]
+
+    siswa = ambil_siswa_by_nisn(nisn)
+
+    print(siswa)
+
+    form_edit_siswa(siswa)
+def hapus_data_siswa():
+
+    data = ambil_data_terpilih()
+
+    if data is None:
+        messagebox.showwarning(
+            "Peringatan",
+            "Pilih data siswa terlebih dahulu."
+        )
+        return
+
+    item, values = data
+
+    nisn = values[2]
+
+    siswa = ambil_siswa_by_nisn(nisn)
+
+    if siswa is None:
+        messagebox.showerror(
+            "Error",
+            "Data siswa tidak ditemukan."
+        )
+        return
+
+    id_siswa = siswa[0]
+    nama = siswa[3]
+
+    jawab = messagebox.askyesno(
+        "Konfirmasi Hapus",
+        f"Yakin ingin menghapus siswa:\n\n{nama}?"
+    )
+
+    if not jawab:
+        return
+
+    print("ID yang akan dihapus =", id_siswa)
+
+    hapus_siswa(id_siswa)
+
+    print("DELETE selesai")
+
+    refresh_treeview()
+
+    messagebox.showinfo(
+        "Berhasil",
+        "Data siswa berhasil dihapus."
+    )
+def form_edit_siswa(siswa):
+
+    # ==========================
+    # Ambil data dari database
+    # ==========================
+    id_siswa, nisn, no_induk, nama, jk, kelas, status = siswa
+
+    # ==========================
+    # Window
+    # ==========================
+    win = ctk.CTkToplevel(app)
+    win.title("Edit Data Siswa")
+    win.geometry("500x520")
+    win.resizable(False, False)
+    win.grab_set()
+
+    # ==========================
+    # Judul
+    # ==========================
+    lbl_judul = ctk.CTkLabel(
+        win,
+        text="EDIT DATA SISWA",
+        font=("Segoe UI", 20, "bold")
+    )
+    lbl_judul.pack(pady=15)
+
+    # ==========================
+    # NISN
+    # ==========================
+    ctk.CTkLabel(win, text="NISN").pack(anchor="w", padx=40)
+
+    entry_nisn = ctk.CTkEntry(win, width=420)
+    entry_nisn.pack(pady=(0,10))
+    entry_nisn.insert(0, nisn)
+
+    # ==========================
+    # No Induk
+    # ==========================
+    ctk.CTkLabel(win, text="No Induk").pack(anchor="w", padx=40)
+
+    entry_no_induk = ctk.CTkEntry(win, width=420)
+    entry_no_induk.pack(pady=(0,10))
+    entry_no_induk.insert(0, no_induk)
+
+    # ==========================
+    # Nama
+    # ==========================
+    ctk.CTkLabel(win, text="Nama Lengkap").pack(anchor="w", padx=40)
+
+    entry_nama = ctk.CTkEntry(win, width=420)
+    entry_nama.pack(pady=(0,10))
+    entry_nama.insert(0, nama)
+
+    # ==========================
+    # Jenis Kelamin
+    # ==========================
+    ctk.CTkLabel(win, text="Jenis Kelamin").pack(anchor="w", padx=40)
+
+    combo_jk = ctk.CTkComboBox(
+        win,
+        values=["L", "P"],
+        width=420
+    )
+    combo_jk.pack(pady=(0,10))
+    print(f"JK dari database = '{jk}'")
+    combo_jk.set(jk)
+
+    # ==========================
+    # Kelas
+    # ==========================
+    ctk.CTkLabel(win, text="Kelas").pack(anchor="w", padx=40)
+
+    combo_kelas = ctk.CTkComboBox(
+        win,
+        width=420,
+        values=[
+            "4 A",
+            "4 B",
+            "5 A",
+            "5 B",
+            "6 A",
+            "6 B"
+        ]
+    )
+    combo_kelas.pack(pady=(0,10))
+
+    combo_kelas.set(kelas)
+
+    # ==========================
+    # Status
+    # ==========================
+    ctk.CTkLabel(win, text="Status").pack(anchor="w", padx=40)
+
+    combo_status = ctk.CTkComboBox(
+        win,
+        values=["Aktif", "Nonaktif"],
+        width=420
+    )
+    combo_status.pack(pady=(0,20))
+    combo_status.set(status)
+    # ==========================
+    # Simpan
+    # ==========================
+
+    def simpan_edit():
+
+        try:
+
+            update_siswa(
+                id_siswa,
+                entry_nisn.get(),
+                entry_no_induk.get(),
+                entry_nama.get(),
+                combo_jk.get(),
+                combo_kelas.get()
+            )
+
+            refresh_treeview()
+
+            messagebox.showinfo(
+                "Berhasil",
+                "Data siswa berhasil diperbarui."
+            )
+
+            win.destroy()
+
+        except Exception as e:
+            messagebox.showerror(
+                "Error",
+                str(e)
+            )
+
+    ctk.CTkButton(
+        win,
+        text="💾 Simpan",
+        command=simpan_edit,
+        width=200,
+        height=40
+    ).pack(pady=20)
 
 menus=[
 ("Dashboard",tampil_dashboard),

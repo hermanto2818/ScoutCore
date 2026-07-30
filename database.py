@@ -202,3 +202,39 @@ def update_siswa(id_siswa, nisn, no_induk, nama, jk, kelas):
 
     conn.commit()
     conn.close()
+def ambil_siswa_by_nisn(nisn):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT
+            id,
+            nisn,
+            no_induk,
+            nama,
+            jk,
+            kelas,
+            status
+        FROM siswa
+        WHERE nisn = ?
+    """, (nisn,))
+
+    data = cursor.fetchone()
+
+    conn.close()
+
+    return data
+
+def hapus_siswa(id_siswa):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        DELETE FROM siswa
+        WHERE id = ?
+    """, (id_siswa,))
+
+    print("Row terhapus =", cursor.rowcount)
+
+    conn.commit()
+    conn.close()
