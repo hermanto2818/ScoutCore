@@ -33,10 +33,15 @@ def create_database():
 
     )
     """)
-
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS kelas (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nama_kelas TEXT NOT NULL UNIQUE
+    )
+    """)
     conn.commit()
     conn.close()
-
+    
 
 def kosongkan_data_siswa():
 
@@ -234,7 +239,65 @@ def hapus_siswa(id_siswa):
         WHERE id = ?
     """, (id_siswa,))
 
-    print("Row terhapus =", cursor.rowcount)
+
+    conn.commit()
+    conn.close()
+
+# ==================================================
+# DATABASE MASTER KELAS
+# ==================================================
+
+def ambil_semua_kelas():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT id, nama_kelas
+        FROM kelas
+        ORDER BY nama_kelas
+    """)
+
+    data = cursor.fetchall()
+
+    conn.close()
+    return data
+
+
+def tambah_kelas(nama_kelas):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        INSERT INTO kelas (nama_kelas)
+        VALUES (?)
+    """, (nama_kelas,))
+
+    conn.commit()
+    conn.close()
+
+
+def update_kelas(id_kelas, nama_kelas):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE kelas
+        SET nama_kelas = ?
+        WHERE id = ?
+    """, (nama_kelas, id_kelas))
+
+    conn.commit()
+    conn.close()
+
+
+def hapus_kelas(id_kelas):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        DELETE FROM kelas
+        WHERE id = ?
+    """, (id_kelas,))
 
     conn.commit()
     conn.close()

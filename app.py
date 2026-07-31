@@ -16,7 +16,12 @@ from database import (
     update_siswa,
     hapus_siswa,
     cek_jumlah_siswa,
-    ambil_siswa_by_nisn
+    ambil_siswa_by_nisn,
+
+    ambil_semua_kelas,
+    tambah_kelas,
+    update_kelas,
+    hapus_kelas
 )
 from import_excel import import_excel
 
@@ -46,6 +51,8 @@ lbl_filter = None
 content = None
 
 entry_search = None
+
+tree_kelas = None
 
 search_var = ctk.StringVar()
 kelas_var = ctk.StringVar(value="Semua")
@@ -204,6 +211,114 @@ def form_siswa(id_siswa=None, data=None):
         command=simpan,
         width=200
     ).pack(pady=20)
+# ==========================================================
+# MASTER KELAS
+# ==========================================================
+
+def refresh_tree_kelas():
+
+    global tree_kelas
+
+    if tree_kelas is None:
+        return
+
+    tree_kelas.delete(*tree_kelas.get_children())
+
+    data = ambil_semua_kelas()
+    for no, row in enumerate(data, start=1):
+
+        tree_kelas.insert(
+            "",
+            "end",
+            values=(
+                no,
+                row[1]
+            )
+        )
+def form_tambah_kelas():
+
+    win = ctk.CTkToplevel(app)
+
+    win.title("Tambah Kelas")
+
+    win.geometry("350x180")
+
+    win.grab_set()
+    ctk.CTkLabel(
+        win,
+        text="Nama Kelas"
+    ).pack(pady=(20,5))
+    entry_kelas = ctk.CTkEntry(
+        win,
+        width=250
+    )
+
+    entry_kelas.pack()
+    def simpan():
+
+        nama = entry_kelas.get().strip()
+
+        tambah_kelas(nama)
+        
+        refresh_tree_kelas()
+    ctk.CTkButton(
+        win,
+        text="Simpan",
+        width=120,
+        command=simpan
+    ).pack(pady=20)
+def tampil_master_kelas():
+
+    global tree_kelas
+
+    for w in content.winfo_children():
+        w.destroy()
+
+    ctk.CTkLabel(
+        content,
+        text="MASTER KELAS",
+        font=("Segoe UI",28,"bold")
+    ).pack(pady=15)
+    toolbar = ctk.CTkFrame(content)
+    toolbar.pack(fill="x", padx=20, pady=5)
+    ctk.CTkButton(
+        toolbar,
+        text="Tambah",
+        width=100,
+        command=form_tambah_kelas
+    ).pack(side="left", padx=5)
+    frame = ctk.CTkFrame(content)
+    frame.pack(
+        fill="both",
+        expand=True,
+        padx=20,
+        pady=10
+    )
+    cols = ("No", "Nama Kelas")
+
+    tree_kelas = ttk.Treeview(
+        frame,
+        columns=cols,
+        show="headings"
+    )
+    tree_kelas.heading("No", text="No")
+    tree_kelas.heading("Nama Kelas", text="Nama Kelas")
+    tree_kelas.column(
+        "No",
+        width=70,
+        anchor="center"
+    )
+
+    tree_kelas.column(
+        "Nama Kelas",
+        width=350,
+        anchor="w"
+    )
+    tree_kelas.pack(
+        fill="both",
+        expand=True
+    )
+    refresh_tree_kelas()
 def tampil_dashboard():
     for w in content.winfo_children():
         w.destroy()
@@ -539,12 +654,15 @@ def form_edit_siswa(siswa):
     ).pack(pady=20)
 
 menus=[
-("Dashboard",tampil_dashboard),
-("Data Siswa",tampil_data_siswa),
-("Anggota",lambda:messagebox.showinfo("Info","Segera hadir")),
-("Absensi",lambda:messagebox.showinfo("Info","Segera hadir")),
-("Rekap",lambda:messagebox.showinfo("Info","Segera hadir")),
-("Nilai",lambda:messagebox.showinfo("Info","Segera hadir"))
+("Dashboard", tampil_dashboard),
+("Data Siswa", tampil_data_siswa),
+
+("Master Kelas", tampil_master_kelas),
+
+("Anggota", lambda: messagebox.showinfo("Info","Segera hadir")),
+("Absensi", lambda: messagebox.showinfo("Info","Segera hadir")),
+("Rekap", lambda: messagebox.showinfo("Info","Segera hadir")),
+("Nilai", lambda: messagebox.showinfo("Info","Segera hadir"))
 ]
 for t,cmd in menus:
     ctk.CTkButton(sidebar,text=t,width=190,command=cmd).pack(pady=5)
