@@ -238,35 +238,49 @@ def refresh_tree_kelas():
 def form_tambah_kelas():
 
     win = ctk.CTkToplevel(app)
-
     win.title("Tambah Kelas")
-
     win.geometry("350x180")
-
     win.grab_set()
+
     ctk.CTkLabel(
         win,
         text="Nama Kelas"
-    ).pack(pady=(20,5))
+    ).pack(pady=(20, 5))
+
     entry_kelas = ctk.CTkEntry(
         win,
         width=250
     )
-
     entry_kelas.pack()
+
     def simpan():
 
         nama = entry_kelas.get().strip()
 
-        tambah_kelas(nama)
-        
-        refresh_tree_kelas()
+        if nama == "":
+            messagebox.showwarning(
+                "Peringatan",
+                "Nama kelas tidak boleh kosong."
+            )
+            return
+
+        try:
+            tambah_kelas(nama)
+            refresh_tree_kelas()
+            win.destroy()
+        except Exception:
+            messagebox.showerror(
+                "Gagal",
+                "Nama kelas sudah ada."
+            )
+
     ctk.CTkButton(
         win,
         text="Simpan",
         width=120,
         command=simpan
     ).pack(pady=20)
+
 def tampil_master_kelas():
 
     global tree_kelas
