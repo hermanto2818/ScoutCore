@@ -282,14 +282,32 @@ def edit_kelas():
 
         nama_baru = entry_kelas.get().strip()
 
-        update_kelas(
-            id_kelas,
-             nama_baru
-    )
+        if nama_baru == "":
+            messagebox.showwarning(
+                "Peringatan",
+                "Nama kelas tidak boleh kosong."
+            )
+            return
 
-        refresh_tree_kelas()
-        win.destroy()
-        print("UPDATE BERHASIL")
+        try:
+
+            update_kelas(
+                id_kelas,
+                nama_baru
+                )
+
+            refresh_tree_kelas()
+
+            win.destroy()
+
+        except Exception as e:
+
+            print(e)
+
+            messagebox.showerror(
+                "Gagal",
+                str(e)
+            )
     ctk.CTkButton(
     win,
     text="Simpan",
