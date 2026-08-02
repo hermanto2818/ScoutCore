@@ -1,4 +1,5 @@
 import sqlite3
+from sqlite3 import IntegrityError
 from datetime import datetime
 
 DATABASE = "pramuka.db"
@@ -37,6 +38,12 @@ def create_database():
     CREATE TABLE IF NOT EXISTS kelas (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nama_kelas TEXT NOT NULL UNIQUE
+    )
+    """)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS golongan (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nama_golongan TEXT NOT NULL UNIQUE
     )
     """)
     conn.commit()
@@ -239,10 +246,60 @@ def hapus_siswa(id_siswa):
         WHERE id = ?
     """, (id_siswa,))
 
+    conn.commit()
+    conn.close()
+# ==================================================
+# DATABASE MASTER GOLONGAN
+# ==================================================
+
+def ambil_semua_golongan():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT id, nama_golongan
+        FROM golongan
+        ORDER BY nama_golongan
+    """)
+
+    data = cursor.fetchall()
+
+    conn.close()
+    return data
+def tambah_golongan(nama_golongan):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        INSERT INTO golongan (nama_golongan)
+        VALUES (?)
+    """, (nama_golongan,))
 
     conn.commit()
     conn.close()
+def update_golongan(id_golongan, nama_golongan):
+    conn = get_connection()
+    cursor = conn.cursor()
 
+    cursor.execute("""
+        UPDATE golongan
+        SET nama_golongan = ?
+        WHERE id = ?
+    """, (nama_golongan, id_golongan))
+
+    conn.commit()
+    conn.close()
+def hapus_golongan(id_golongan):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        DELETE FROM golongan
+        WHERE id = ?
+    """, (id_golongan,))
+
+    conn.commit()
+    conn.close()
 # ==================================================
 # DATABASE MASTER KELAS
 # ==================================================

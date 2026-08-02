@@ -21,7 +21,12 @@ from database import (
     ambil_semua_kelas,
     tambah_kelas,
     update_kelas,
-    hapus_kelas
+    hapus_kelas,
+
+    ambil_semua_golongan,
+    tambah_golongan,
+    update_golongan,
+    hapus_golongan
 )
 from import_excel import import_excel
 
@@ -452,6 +457,257 @@ def tampil_master_kelas():
         expand=True
     )
     refresh_tree_kelas()
+# ==================================================
+# MASTER GOLONGAN
+# ==================================================
+def refresh_tree_golongan():
+
+    for item in tree_golongan.get_children():
+        tree_golongan.delete(item)
+
+    data = ambil_semua_golongan()
+
+    no = 1
+
+    for row in data:
+
+        tree_golongan.insert(
+            "",
+            "end",
+            values=(
+                no,
+                row[1]
+            )
+        )
+
+        no += 1
+def ambil_golongan_terpilih():
+
+    selected = tree_golongan.selection()
+
+    if not selected:
+        messagebox.showwarning(
+            "Peringatan",
+            "Pilih data golongan terlebih dahulu."
+        )
+        return None
+
+    values = tree_golongan.item(
+        selected[0],
+        "values"
+    )
+
+    return values
+def edit_golongan():
+
+    data = ambil_golongan_terpilih()
+
+    if data is None:
+        return
+
+    id_golongan = int(data[0])
+    nama_golongan = data[1]
+
+    win = ctk.CTkToplevel(app)
+    win.title("Edit Golongan")
+    win.geometry("350x180")
+    win.grab_set()
+
+    ctk.CTkLabel(
+        win,
+        text="Nama Golongan"
+    ).pack(pady=(20, 5))
+
+    entry_golongan = ctk.CTkEntry(
+        win,
+        width=250
+    )
+    entry_golongan.pack()
+
+    entry_golongan.insert(0, nama_golongan)
+
+    def simpan_edit():
+
+        nama_baru = entry_golongan.get().strip()
+
+        if nama_baru == "":
+            messagebox.showwarning(
+                "Peringatan",
+                "Nama golongan tidak boleh kosong."
+            )
+            return
+
+        try:
+
+            update_golongan(
+                id_golongan,
+                nama_baru
+            )
+
+            refresh_tree_golongan()
+
+            win.destroy()
+
+        except Exception:
+
+            messagebox.showerror(
+                "Gagal",
+                "Nama golongan sudah ada."
+            )
+
+    ctk.CTkButton(
+        win,
+        text="Simpan",
+        width=120,
+        command=simpan_edit
+    ).pack(pady=20)
+def form_tambah_golongan():
+
+    win = ctk.CTkToplevel(app)
+    win.title("Tambah Golongan")
+    win.geometry("350x180")
+    win.grab_set()
+
+    ctk.CTkLabel(
+        win,
+        text="Nama Golongan"
+    ).pack(pady=(20, 5))
+
+    entry_golongan = ctk.CTkEntry(
+        win,
+        width=250
+    )
+    entry_golongan.pack()
+
+    def simpan():
+
+        nama = entry_golongan.get().strip()
+
+        if nama == "":
+            messagebox.showwarning(
+                "Peringatan",
+                "Nama golongan tidak boleh kosong."
+            )
+            return
+
+        try:
+
+            tambah_golongan(nama)
+
+            refresh_tree_golongan()
+
+            win.destroy()
+
+        except Exception:
+
+            messagebox.showerror(
+                "Gagal",
+                "Nama golongan sudah ada."
+            )
+
+    ctk.CTkButton(
+        win,
+        text="Simpan",
+        width=120,
+        command=simpan
+    ).pack(pady=20)
+def hapus_golongan_data():
+
+    data = ambil_golongan_terpilih()
+
+    if data is None:
+        return
+
+    id_golongan = int(data[0])
+    nama_golongan = data[1]
+
+    jawab = messagebox.askyesno(
+        "Konfirmasi",
+        f"Yakin ingin menghapus golongan\n\n{nama_golongan} ?"
+    )
+
+    if not jawab:
+        return
+
+    hapus_golongan(id_golongan)
+
+    refresh_tree_golongan()
+
+    messagebox.showinfo(
+        "Berhasil",
+        "Data golongan berhasil dihapus."
+    )
+def tampil_master_golongan():
+
+    for w in content.winfo_children():
+        w.destroy()
+
+    ctk.CTkLabel(
+        content,
+        text="MASTER GOLONGAN",
+        font=("Segoe UI", 28, "bold")
+    ).pack(pady=15)
+    toolbar = ctk.CTkFrame(content)
+    toolbar.pack(fill="x", padx=20, pady=5)
+
+    ctk.CTkButton(
+        toolbar,
+        text="Tambah",
+        width=100,
+        command=form_tambah_golongan
+    ).pack(side="left", padx=5)
+
+    ctk.CTkButton(
+    toolbar,
+    text="Edit",
+    width=100,
+    command=edit_golongan
+    ).pack(side="left", padx=5)
+
+    ctk.CTkButton(
+    toolbar,
+    text="Hapus",
+    width=100,
+    command=hapus_golongan_data
+).pack(side="left", padx=5)
+    frame = ctk.CTkFrame(content)
+
+    frame.pack(
+        fill="both",
+        expand=True,
+        padx=20,
+        pady=10
+    )
+
+    cols = ("No", "Nama Golongan")
+
+    global tree_golongan
+
+    tree_golongan = ttk.Treeview(
+        frame,
+        columns=cols,
+        show="headings"
+    )
+
+    tree_golongan.heading("No", text="No")
+    tree_golongan.heading("Nama Golongan", text="Nama Golongan")
+
+    tree_golongan.column(
+        "No",
+        width=60,
+        anchor="center"
+    )
+
+    tree_golongan.column(
+        "Nama Golongan",
+        anchor="center"
+    )
+
+    tree_golongan.pack(
+        fill="both",
+        expand=True
+    )
+    refresh_tree_golongan()
 def tampil_dashboard():
     for w in content.winfo_children():
         w.destroy()
@@ -790,6 +1046,7 @@ menus=[
 ("Data Siswa", tampil_data_siswa),
 
 ("Master Kelas", tampil_master_kelas),
+("Master Golongan", tampil_master_golongan),
 
 ("Anggota", lambda: messagebox.showinfo("Info","Segera hadir")),
 ("Absensi", lambda: messagebox.showinfo("Info","Segera hadir")),
