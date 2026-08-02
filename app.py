@@ -235,6 +235,67 @@ def refresh_tree_kelas():
                 row[1]
             )
         )
+def ambil_kelas_terpilih():
+
+    selected = tree_kelas.selection()
+
+    if not selected:
+        messagebox.showwarning(
+            "Peringatan",
+            "Pilih data kelas terlebih dahulu."
+        )
+        return None
+
+    values = tree_kelas.item(selected[0], "values")
+
+    return values
+def edit_kelas():
+
+    data = ambil_kelas_terpilih()
+
+    if data is None:
+        return
+
+    id_kelas = int(data[0])
+    nama_kelas = data[1]
+
+    nama_lama = nama_kelas
+
+    win = ctk.CTkToplevel(app)
+    win.title("Edit Kelas")
+    win.geometry("350x180")
+    win.grab_set()
+
+    ctk.CTkLabel(
+        win,
+        text="Nama Kelas"
+    ).pack(pady=(20,5))
+
+    entry_kelas = ctk.CTkEntry(
+        win,
+        width=250
+    )
+    entry_kelas.pack()
+
+    entry_kelas.insert(0, nama_kelas)
+    def simpan_edit():
+
+        nama_baru = entry_kelas.get().strip()
+
+        update_kelas(
+            id_kelas,
+             nama_baru
+    )
+
+        refresh_tree_kelas()
+        win.destroy()
+        print("UPDATE BERHASIL")
+    ctk.CTkButton(
+    win,
+    text="Simpan",
+    width=120,
+    command=simpan_edit
+).pack(pady=20)
 def form_tambah_kelas():
 
     win = ctk.CTkToplevel(app)
@@ -296,11 +357,19 @@ def tampil_master_kelas():
     toolbar = ctk.CTkFrame(content)
     toolbar.pack(fill="x", padx=20, pady=5)
     ctk.CTkButton(
-        toolbar,
-        text="Tambah",
-        width=100,
-        command=form_tambah_kelas
-    ).pack(side="left", padx=5)
+    toolbar,
+    text="Tambah",
+    width=100,
+    command=form_tambah_kelas
+).pack(side="left", padx=5)
+
+    ctk.CTkButton(
+    toolbar,
+    text="Edit",
+    width=100,
+    command=edit_kelas
+).pack(side="left", padx=5)
+
     frame = ctk.CTkFrame(content)
     frame.pack(
         fill="both",
@@ -390,8 +459,7 @@ def tampil_data_siswa():
     text="Edit",
     width=100,
     command=test_edit
-).pack(side="left", padx=5)
-    
+).pack(side="left", padx=5)    
     ctk.CTkButton(
     tb,
     text="Hapus",
