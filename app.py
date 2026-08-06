@@ -1,13 +1,14 @@
 
 # ==========================================================
 # ScoutCore
-# Pramuka Information System
+# Smart Scout Administration
 # Version : 0.5.4
 # ==========================================================
 
 import customtkinter as ctk
 from tkinter import ttk, messagebox
-
+from tkinter import filedialog
+from PIL import Image
 from database import (
     create_database,
     ambil_semua_siswa,
@@ -25,16 +26,29 @@ from database import (
     hapus_kelas,
 
     ambil_semua_golongan,
+    daftar_nama_golongan,
     tambah_golongan,
     update_golongan,
     hapus_golongan,
     tentukan_golongan,
+    ambil_administrator,
+    simpan_administrator,
+
+    cek_pertemuan_sudah_ada
 )
 from import_excel import import_excel
 
 ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("blue")
+# ==========================================
+# SCOUTCORE THEME
+# ==========================================
 
+SCOUT_GREEN = "#1B5E20"
+SCOUT_GOLD = "#D4AF37"
+SCOUT_WHITE = "#F7F7F7"
+SCOUT_LIGHT = "#ECECEC"
+SCOUT_TEXT = "#222222"
 
 
 # ==========================================================
@@ -49,8 +63,9 @@ ctk.set_default_color_theme("blue")
 create_database()
 
 app = ctk.CTk()
-app.title("ScoutCore - Pramuka Information System v0.5.4")
+app.title("ScoutCore - Smart Scout Administration v0.5.4")
 app.geometry("1280x720")
+app.iconbitmap("assets/scoutcore.ico")
 
 tree = None
 lbl_jumlah = None
@@ -181,21 +196,24 @@ def form_siswa(id_siswa=None, data=None):
     )
     cmb_kelas.pack()
     def kelas_berubah(pilihan):
-
+        print("kelas_berubah dipanggil:", pilihan)
         golongan = tentukan_golongan(pilihan)
 
-        cmb_golongan.set(golongan)
-    cmb_kelas.configure(command=kelas_berubah)
+        ent_golongan.configure(state="normal")
+        ent_golongan.delete(0, "end")
+        ent_golongan.insert(0, golongan)
+        ent_golongan.configure(state="disabled")
+    
     # Golongan
     ctk.CTkLabel(win, text="Golongan").pack(pady=(10, 0))
 
-    cmb_golongan = ctk.CTkComboBox(
+    ent_golongan = ctk.CTkEntry(
         win,
         width=250,
-        values=[]
+        state="disabled"
     )
-    cmb_golongan.pack()
-
+    ent_golongan.pack()
+    cmb_kelas.configure(command=kelas_berubah)
     def simpan():
         try:
             print("JK =", cmb_jk.get())
@@ -205,7 +223,7 @@ def form_siswa(id_siswa=None, data=None):
                 ent_nama.get(),
                 cmb_jk.get(),
                 cmb_kelas.get(),
-                cmb_golongan.get()
+                ent_golongan.get()
             )
 
             print("Jumlah siswa:", cek_jumlah_siswa())
@@ -242,14 +260,19 @@ def refresh_tree_kelas():
     tree_kelas.delete(*tree_kelas.get_children())
 
     data = ambil_semua_kelas()
+
     for no, row in enumerate(data, start=1):
+
+        id_kelas = row[0]
+        nama_kelas = row[1]
 
         tree_kelas.insert(
             "",
             "end",
+            iid=str(id_kelas),
             values=(
                 no,
-                row[1]
+                nama_kelas
             )
         )
 def ambil_kelas_terpilih():
@@ -263,9 +286,17 @@ def ambil_kelas_terpilih():
         )
         return None
 
-    values = tree_kelas.item(selected[0], "values")
+    id_kelas = int(selected[0])
 
-    return values
+    nama_kelas = tree_kelas.item(
+        selected[0],
+        "values"
+    )[1]
+
+    return (
+        id_kelas,
+        nama_kelas
+    )
 def edit_kelas():
 
     data = ambil_kelas_terpilih()
@@ -476,25 +507,24 @@ def tampil_master_kelas():
 # ==================================================
 def refresh_tree_golongan():
 
-    for item in tree_golongan.get_children():
-        tree_golongan.delete(item)
+    tree_golongan.delete(*tree_golongan.get_children())
 
     data = ambil_semua_golongan()
 
-    no = 1
+    for no, row in enumerate(data, start=1):
 
-    for row in data:
+        id_golongan = row[0]
+        nama_golongan = row[1]
 
         tree_golongan.insert(
             "",
             "end",
+            iid=str(id_golongan),
             values=(
                 no,
-                row[1]
+                nama_golongan
             )
         )
-
-        no += 1
 def ambil_golongan_terpilih():
 
     selected = tree_golongan.selection()
@@ -506,12 +536,17 @@ def ambil_golongan_terpilih():
         )
         return None
 
-    values = tree_golongan.item(
+    id_golongan = int(selected[0])
+
+    nama_golongan = tree_golongan.item(
         selected[0],
         "values"
-    )
+    )[1]
 
-    return values
+    return (
+        id_golongan,
+        nama_golongan
+    )
 def edit_golongan():
 
     data = ambil_golongan_terpilih()
@@ -725,35 +760,115 @@ def tampil_master_golongan():
 def tampil_dashboard():
     for w in content.winfo_children():
         w.destroy()
+    data_admin = ambil_administrator()
+    nomor_gudep = ""
+    nama_pangkalan = ""
+    tahun_ajaran = ""
+    nama_pembina = ""
+
+    if data_admin:
+
+        nomor_gudep = data_admin[2]
+        nama_pangkalan = data_admin[3]
+        tahun_ajaran = data_admin[4]
+        nama_pembina = data_admin[5]
 
     ctk.CTkLabel(
         content,
         text="ScoutCore",
-        font=("Segoe UI", 34, "bold")
+        font=("Segoe UI", 22, "bold")
     ).pack(pady=(25, 5))
 
     ctk.CTkLabel(
         content,
-        text="Pramuka Information System",
-        font=("Segoe UI", 18)
+        text="Smart Scout Administration",
+        font=("Segoe UI", 16),
+        text_color="gray40"
+    ).pack()
+    ctk.CTkLabel(
+        content,
+        text=f"Gudep {nomor_gudep}",
+        font=("Segoe UI", 15, "bold")
+    ).pack(pady=(10,0))
+
+    ctk.CTkLabel(
+        content,
+        text=f"Pangkalan {nama_pangkalan}",
+        font=("Segoe UI", 14)
     ).pack()
 
-    cards = ctk.CTkFrame(content)
-    cards.pack(pady=30)
+    ctk.CTkLabel(
+        content,
+        text=f"Tahun Ajaran {tahun_ajaran}",
+        font=("Segoe UI", 13),
+        text_color="gray40"
+    ).pack(pady=(0,15))
+    ctk.CTkFrame(
+        content,
+        height=2,
+        fg_color="#D0D0D0"
+    ).pack(fill="x", padx=40, pady=(10,20))
+
+    ctk.CTkLabel(
+        content,
+        text=f"Selamat Datang, Kak {nama_pembina}",
+        font=("Segoe UI",18,"bold"),
+        text_color=SCOUT_GREEN
+    ).pack(pady=(0,25))
+    cards = ctk.CTkFrame(
+        content,
+        fg_color="transparent"
+    )
+
+    cards.pack(
+        fill="x",
+        padx=40,
+        pady=(15,30)
+    )
 
     stats = [
         ("Total Siswa", str(jumlah_siswa())),
-        ("Anggota Pramuka", "0"),
+        ("Anggota Aktif", "0"),
         ("Pertemuan", "0"),
         ("Kehadiran", "0%")
     ]
 
-    for title, value in stats:
-        box = ctk.CTkFrame(cards, width=180, height=110)
-        box.pack(side="left", padx=12)
+    # Membuat kolom otomatis berada di tengah
+    for i in range(4):
+        cards.grid_columnconfigure(i, weight=1)
+
+    for col, (title, value) in enumerate(stats):
+
+        box = ctk.CTkFrame(
+            cards,
+            width=180,
+            height=120,
+            fg_color="white",
+            corner_radius=12,
+            border_width=1,
+            border_color="#D8D8D8"
+        )
+
+        box.grid(
+            row=0,
+            column=col,
+            padx=15,
+            pady=10,
+            sticky=""
+        )
+
         box.pack_propagate(False)
-        ctk.CTkLabel(box, text=value, font=("Segoe UI", 26, "bold")).pack(pady=(18,4))
-        ctk.CTkLabel(box, text=title).pack()
+
+        ctk.CTkLabel(
+            box,
+            text=value,
+            font=("Segoe UI",26,"bold")
+        ).pack(pady=(18,4))
+
+        ctk.CTkLabel(
+            box,
+            text=title
+        ).pack()
 
 
 def tampil_data_siswa():
@@ -805,7 +920,7 @@ def tampil_data_siswa():
     combo_kelas = ctk.CTkComboBox(
         tb,
         width=90,
-        values=["Semua", "4 A", "4 B", "5 A", "5 B", "6 A", "6 B"],
+        values=["Semua"] + daftar_nama_kelas(),
         variable=kelas_var,
         command=lambda x: refresh_treeview()
     )
@@ -853,14 +968,39 @@ sidebar.pack(side="left",fill="y")
 
 content=ctk.CTkFrame(app)
 content.pack(side="right",fill="both",expand=True,padx=10,pady=10)
+logo = ctk.CTkImage(
+    light_image=Image.open("assets/scoutcore_logo.png"),
+    dark_image=Image.open("assets/scoutcore_logo.png"),
+    size=(95,95)
+)
+ctk.CTkLabel(
+    sidebar,
+    image=logo,
+    text=""
+).pack(pady=(15,5))
+ctk.CTkLabel(
+    sidebar,
+    text="ScoutCore",
+    font=("Segoe UI",20,"bold")
+).pack()
 
-ctk.CTkLabel(sidebar,text="⚜",font=("Segoe UI Emoji",36)).pack(pady=(20,5))
-ctk.CTkLabel(sidebar,
-             text="ScoutCore\nPramuka Information\nSystem",
-             font=("Segoe UI",18,"bold"),
-             justify="center").pack()
+ctk.CTkLabel(
+    sidebar,
+    text="Smart Scout Administration",
+    font=("Segoe UI",11)
+).pack(pady=(0,15))
+ctk.CTkLabel(
+    sidebar,
+    text="Version 0.5.4",
+    font=("Segoe UI",10),
+    text_color="gray50"
+).pack(pady=(2,12))
+ctk.CTkFrame(
+    sidebar,
+    height=2,
+    fg_color="#D0D0D0"
+).pack(fill="x", padx=15, pady=(5,15))
 
-ctk.CTkLabel(sidebar,text="Version 0.5.4").pack(pady=(5,20))
 def test_edit():
 
     data = ambil_data_terpilih()
@@ -925,159 +1065,447 @@ def hapus_data_siswa():
         "Data siswa berhasil dihapus."
     )
 def form_edit_siswa(siswa):
+    id_siswa, nisn, no_induk, nama, jk, kelas, golongan, status = siswa
 
-    # ==========================
-    # Ambil data dari database
-    # ==========================
-    id_siswa, nisn, no_induk, nama, jk, kelas, status = siswa
-
-    # ==========================
-    # Window
-    # ==========================
     win = ctk.CTkToplevel(app)
     win.title("Edit Data Siswa")
-    win.geometry("500x520")
+    win.geometry("500x620")
     win.resizable(False, False)
     win.grab_set()
+
+    ctk.CTkLabel(win, text="EDIT DATA SISWA", font=("Segoe UI",20,"bold")).pack(pady=15)
+
+    ctk.CTkLabel(win,text="NISN").pack(anchor="w",padx=40)
+    entry_nisn=ctk.CTkEntry(win,width=420); entry_nisn.pack(pady=(0,10)); entry_nisn.insert(0,nisn)
+
+    ctk.CTkLabel(win,text="No Induk").pack(anchor="w",padx=40)
+    entry_no_induk=ctk.CTkEntry(win,width=420); entry_no_induk.pack(pady=(0,10)); entry_no_induk.insert(0,no_induk)
+
+    ctk.CTkLabel(win,text="Nama Lengkap").pack(anchor="w",padx=40)
+    entry_nama=ctk.CTkEntry(win,width=420); entry_nama.pack(pady=(0,10)); entry_nama.insert(0,nama)
+
+    ctk.CTkLabel(win,text="Jenis Kelamin").pack(anchor="w",padx=40)
+    combo_jk=ctk.CTkComboBox(win,values=["L","P"],width=420)
+    combo_jk.pack(pady=(0,10)); combo_jk.set(jk)
+
+    ctk.CTkLabel(win,text="Kelas").pack(anchor="w",padx=40)
+    combo_kelas=ctk.CTkComboBox(win,values=daftar_nama_kelas(),width=420)
+    combo_kelas.pack(pady=(0,10))
+
+    ctk.CTkLabel(win,text="Golongan").pack(anchor="w",padx=40)
+    entry_golongan=ctk.CTkEntry(win,width=420)
+    entry_golongan.pack(pady=(0,10))
+
+    def kelas_berubah(pilihan):
+        g=tentukan_golongan(pilihan)
+        entry_golongan.configure(state="normal")
+        entry_golongan.delete(0,"end")
+        entry_golongan.insert(0,g)
+        entry_golongan.configure(state="disabled")
+
+    combo_kelas.configure(command=kelas_berubah)
+    combo_kelas.set(kelas)
+    kelas_berubah(kelas)
+
+    ctk.CTkLabel(win,text="Status").pack(anchor="w",padx=40)
+    combo_status=ctk.CTkComboBox(win,values=["Aktif","Nonaktif"],width=420)
+    combo_status.pack(pady=(0,20)); combo_status.set(status)
+
+    def simpan_edit():
+        update_siswa(
+            id_siswa,
+            entry_nisn.get(),
+            entry_no_induk.get(),
+            entry_nama.get(),
+            combo_jk.get(),
+            combo_kelas.get(),
+            entry_golongan.get()
+        )
+        refresh_treeview()
+        messagebox.showinfo("Berhasil","Data siswa berhasil diperbarui.")
+        win.destroy()
+
+    ctk.CTkButton(win,text="💾 Simpan",command=simpan_edit,width=200,height=40).pack(pady=20)
+
+def tampil_administrator():
+
+    for w in content.winfo_children():
+        w.destroy()
+
+    ctk.CTkLabel(
+        content,
+        text="ADMINISTRATOR",
+        font=("Segoe UI", 28, "bold")
+    ).pack(pady=20)
+
+    ctk.CTkLabel(
+        content,
+        text="Pengaturan Identitas ScoutCore",
+        font=("Segoe UI", 15)
+    ).pack()
+
+    # ==========================
+    # Nama Aplikasi
+    # ==========================
+
+    ctk.CTkLabel(
+        content,
+        text="Nama Aplikasi"
+    ).pack(pady=(20,5))
+
+    entry_nama_aplikasi = ctk.CTkEntry(
+        content,
+        width=350
+    )
+    entry_nama_aplikasi.pack()
+
+    entry_nama_aplikasi.insert(
+        0,
+        "ScoutCore"
+    )
+    # ==========================
+    # Nomor Gugusdepan
+    # ==========================
+
+    ctk.CTkLabel(
+        content,
+        text="Nomor Gugusdepan"
+    ).pack(pady=(15,5))
+
+    entry_nomor_gudep = ctk.CTkEntry(
+        content,
+        width=350
+    )
+    entry_nomor_gudep.pack()
+
+    # ==========================
+    # Nama Pangkalan
+    # ==========================
+
+    ctk.CTkLabel(
+        content,
+        text="Nama Pangkalan"
+    ).pack(pady=(15,5))
+
+    entry_nama_pangkalan = ctk.CTkEntry(
+        content,
+        width=350
+    )
+    entry_nama_pangkalan.pack()
+    # ==========================
+    # Tahun Ajaran
+    # ==========================
+
+    ctk.CTkLabel(
+        content,
+        text="Tahun Ajaran"
+    ).pack(pady=(15,5))
+
+    entry_tahun_ajaran = ctk.CTkEntry(
+        content,
+        width=350
+    )
+    entry_tahun_ajaran.pack()
+
+    # ==========================
+    # Nama Pembina
+    # ==========================
+
+    ctk.CTkLabel(
+        content,
+        text="Nama Pembina"
+    ).pack(pady=(15,5))
+
+    entry_nama_pembina = ctk.CTkEntry(
+        content,
+        width=350
+    )
+    entry_nama_pembina.pack()
+
+    # ==========================
+    # Logo Gugusdepan
+    # ==========================
+
+    ctk.CTkLabel(
+        content,
+        text="Logo Gugusdepan"
+    ).pack(pady=(15,5))
+
+    label_logo = ctk.CTkLabel(
+        content,
+        text="Belum ada logo dipilih"
+    )
+    label_logo.pack()
+
+
+    def pilih_logo():
+
+        file = filedialog.askopenfilename(
+
+            title="Pilih Logo Gugusdepan",
+
+            filetypes=[
+                ("Image", "*.png *.jpg *.jpeg")
+            ]
+
+        )
+
+        if file:
+            label_logo.configure(text=file)
+
+
+    ctk.CTkButton(
+        content,
+        text="Pilih Logo",
+        width=180,
+        command=pilih_logo
+    ).pack(pady=10)
+    # ==========================
+    # Ambil Data Administrator
+    # ==========================
+
+    data = ambil_administrator()
+
+    if data:
+
+        entry_nama_aplikasi.delete(0, "end")
+        entry_nama_aplikasi.insert(0, data[1])
+
+        entry_nomor_gudep.delete(0, "end")
+        entry_nomor_gudep.insert(0, data[2])
+
+        entry_nama_pangkalan.delete(0, "end")
+        entry_nama_pangkalan.insert(0, data[3])
+
+        entry_tahun_ajaran.delete(0, "end")
+        entry_tahun_ajaran.insert(0, data[4])
+
+        entry_nama_pembina.delete(0, "end")
+        entry_nama_pembina.insert(0, data[5])
+    def simpan():
+
+        simpan_administrator(
+
+            entry_nama_aplikasi.get(),
+
+            entry_nomor_gudep.get(),
+
+            entry_nama_pangkalan.get(),
+
+            entry_tahun_ajaran.get(),
+
+            entry_nama_pembina.get(),
+
+            "",
+
+            76,
+            51,
+            26,
+            0
+
+        )
+
+        messagebox.showinfo(
+            "Berhasil",
+            "Data Administrator berhasil disimpan."
+        )
+    # ==========================
+    # Tombol Simpan
+    # ==========================
+
+    ctk.CTkButton(
+        content,
+        text="Simpan",
+        width=180,
+        height=40,
+        command=simpan
+    ).pack(pady=25)
+def tampil_absensi():
+
+    # Bersihkan area content
+    for w in content.winfo_children():
+        w.destroy()
+
+    data_admin = ambil_administrator()
 
     # ==========================
     # Judul
     # ==========================
-    lbl_judul = ctk.CTkLabel(
-        win,
-        text="EDIT DATA SISWA",
-        font=("Segoe UI", 20, "bold")
-    )
-    lbl_judul.pack(pady=15)
 
-    # ==========================
-    # NISN
-    # ==========================
-    ctk.CTkLabel(win, text="NISN").pack(anchor="w", padx=40)
-
-    entry_nisn = ctk.CTkEntry(win, width=420)
-    entry_nisn.pack(pady=(0,10))
-    entry_nisn.insert(0, nisn)
-
-    # ==========================
-    # No Induk
-    # ==========================
-    ctk.CTkLabel(win, text="No Induk").pack(anchor="w", padx=40)
-
-    entry_no_induk = ctk.CTkEntry(win, width=420)
-    entry_no_induk.pack(pady=(0,10))
-    entry_no_induk.insert(0, no_induk)
-
-    # ==========================
-    # Nama
-    # ==========================
-    ctk.CTkLabel(win, text="Nama Lengkap").pack(anchor="w", padx=40)
-
-    entry_nama = ctk.CTkEntry(win, width=420)
-    entry_nama.pack(pady=(0,10))
-    entry_nama.insert(0, nama)
-
-    # ==========================
-    # Jenis Kelamin
-    # ==========================
-    ctk.CTkLabel(win, text="Jenis Kelamin").pack(anchor="w", padx=40)
-
-    combo_jk = ctk.CTkComboBox(
-        win,
-        values=["L", "P"],
-        width=420
-    )
-    combo_jk.pack(pady=(0,10))
-    print(f"JK dari database = '{jk}'")
-    combo_jk.set(jk)
-
-    # ==========================
-    # Kelas
-    # ==========================
-    ctk.CTkLabel(win, text="Kelas").pack(anchor="w", padx=40)
-
-    combo_kelas = ctk.CTkComboBox(
-        win,
-        width=420,
-        values=[
-            "4 A",
-            "4 B",
-            "5 A",
-            "5 B",
-            "6 A",
-            "6 B"
-        ]
-    )
-    combo_kelas.pack(pady=(0,10))
-
-    combo_kelas.set(kelas)
-
-    # ==========================
-    # Status
-    # ==========================
-    ctk.CTkLabel(win, text="Status").pack(anchor="w", padx=40)
-
-    combo_status = ctk.CTkComboBox(
-        win,
-        values=["Aktif", "Nonaktif"],
-        width=420
-    )
-    combo_status.pack(pady=(0,20))
-    combo_status.set(status)
-    # ==========================
-    # Simpan
-    # ==========================
-
-    def simpan_edit():
-
-        try:
-
-            update_siswa(
-                id_siswa,
-                entry_nisn.get(),
-                entry_no_induk.get(),
-                entry_nama.get(),
-                combo_jk.get(),
-                combo_kelas.get()
-            )
-
-            refresh_treeview()
-
-            messagebox.showinfo(
-                "Berhasil",
-                "Data siswa berhasil diperbarui."
-            )
-
-            win.destroy()
-
-        except Exception as e:
-            messagebox.showerror(
-                "Error",
-                str(e)
-            )
-
-    ctk.CTkButton(
-        win,
-        text="💾 Simpan",
-        command=simpan_edit,
-        width=200,
-        height=40
+    ctk.CTkLabel(
+        content,
+        text="ABSENSI LATIHAN",
+        font=("Segoe UI", 28, "bold")
     ).pack(pady=20)
 
-menus=[
+    ctk.CTkLabel(
+        content,
+        text="Persiapan Pertemuan Latihan",
+        font=("Segoe UI", 15)
+    ).pack()
+
+    # ==========================
+    # Tanggal
+    # ==========================
+
+    ctk.CTkLabel(
+        content,
+        text="Tanggal Latihan"
+    ).pack(pady=(25, 5))
+
+    entry_tanggal = ctk.CTkEntry(
+        content,
+        width=250
+    )
+    entry_tanggal.pack()
+
+    # ==========================
+    # Semester
+    # ==========================
+
+    ctk.CTkLabel(
+        content,
+        text="Semester"
+    ).pack(pady=(15, 5))
+
+    cmb_semester = ctk.CTkComboBox(
+        content,
+        width=250,
+        values=["Ganjil", "Genap"]
+    )
+    cmb_semester.pack()
+
+    # ==========================
+    # Pertemuan
+    # ==========================
+
+    ctk.CTkLabel(
+        content,
+        text="Pertemuan"
+    ).pack(pady=(15, 5))
+
+    entry_pertemuan = ctk.CTkEntry(
+        content,
+        width=250
+    )
+    entry_pertemuan.pack()
+
+    # ==========================
+    # Kegiatan
+    # ==========================
+
+    ctk.CTkLabel(
+        content,
+        text="Kegiatan"
+    ).pack(pady=(15, 5))
+
+    cmb_kegiatan = ctk.CTkComboBox(
+        content,
+        width=250,
+        values=["Latihan Rutin"]
+    )
+    cmb_kegiatan.pack()
+
+    # ==========================
+    # Nama Pembina
+    # ==========================
+
+    ctk.CTkLabel(
+        content,
+        text="Nama Pembina"
+    ).pack(pady=(15, 5))
+
+    entry_pembina = ctk.CTkEntry(
+        content,
+        width=250
+    )
+    entry_pembina.pack()
+
+    if data_admin:
+        entry_pembina.insert(0, data_admin[5])
+
+    # ==========================
+    # Tombol Buat Absensi
+    # ==========================
+
+    def buat_absensi():
+
+        # Validasi tanggal
+        if entry_tanggal.get().strip() == "":
+            messagebox.showwarning(
+                "Peringatan",
+                "Tanggal Latihan harus diisi."
+            )
+            return
+
+        # Validasi semester
+        if cmb_semester.get().strip() == "":
+            messagebox.showwarning(
+                "Peringatan",
+                "Semester harus dipilih."
+            )
+            return
+
+        # Validasi pertemuan
+        if entry_pertemuan.get().strip() == "":
+            messagebox.showwarning(
+                "Peringatan",
+                "Pertemuan harus diisi."
+            )
+            return
+
+        # Validasi kegiatan
+        if cmb_kegiatan.get().strip() == "":
+            messagebox.showwarning(
+                "Peringatan",
+                "Kegiatan harus dipilih."
+            )
+            return
+
+        # Cek pertemuan ganda
+        if cek_pertemuan_sudah_ada(
+            cmb_semester.get(),
+            entry_pertemuan.get()
+        ):
+            messagebox.showwarning(
+                "Peringatan",
+                f"Pertemuan {entry_pertemuan.get()} Semester {cmb_semester.get()} sudah pernah dibuat."
+            )
+            return
+
+        # Lolos semua validasi
+        messagebox.showinfo(
+            "ScoutCore",
+            "Data valid dan siap membuat absensi."
+        )
+
+    ctk.CTkButton(
+        content,
+        text="BUAT ABSENSI",
+        width=220,
+        height=45,
+        command=buat_absensi
+    ).pack(pady=30)
+    
+menus = [
+
 ("Dashboard", tampil_dashboard),
-("Data Siswa", tampil_data_siswa),
+
+("Data Anggota", tampil_data_siswa),
 
 ("Master Kelas", tampil_master_kelas),
+
 ("Master Golongan", tampil_master_golongan),
 
-("Anggota", lambda: messagebox.showinfo("Info","Segera hadir")),
-("Absensi", lambda: messagebox.showinfo("Info","Segera hadir")),
-("Rekap", lambda: messagebox.showinfo("Info","Segera hadir")),
-("Nilai", lambda: messagebox.showinfo("Info","Segera hadir"))
+("Absensi", tampil_absensi),
+
+("Nilai", lambda: messagebox.showinfo("Info", "Segera hadir")),
+
+("Administrator", tampil_administrator)
+
 ]
 for t,cmd in menus:
-    ctk.CTkButton(sidebar,text=t,width=190,command=cmd).pack(pady=5)
+    ctk.CTkButton(sidebar,text=t,width=190,height=38,fg_color=SCOUT_GREEN,command=cmd).pack(pady=5)
 
 tampil_dashboard()
 app.mainloop()

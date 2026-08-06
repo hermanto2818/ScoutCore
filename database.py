@@ -14,6 +14,9 @@ def create_database():
     conn = get_connection()
     cursor = conn.cursor()
 
+    # ==========================
+    # Tabel Anggota
+    # ==========================
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS siswa (
 
@@ -24,6 +27,7 @@ def create_database():
         nama TEXT,
         jk TEXT,
         kelas TEXT,
+        golongan TEXT,
 
         status TEXT DEFAULT 'Aktif',
 
@@ -34,18 +38,87 @@ def create_database():
 
     )
     """)
+
+    # ==========================
+    # Tabel Kelas
+    # ==========================
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS kelas (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    nama_kelas TEXT NOT NULL UNIQUE
+
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+        nama_kelas TEXT NOT NULL UNIQUE
+
     )
     """)
+
+    # ==========================
+    # Tabel Golongan
+    # ==========================
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS golongan (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    nama_golongan TEXT NOT NULL UNIQUE
+
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+        nama_golongan TEXT NOT NULL UNIQUE
+
     )
     """)
+
+    # ==========================
+    # Tabel Administrator
+    # ==========================
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS administrator (
+
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+        nama_aplikasi TEXT,
+        nama_gudep TEXT,
+        nama_pangkalan TEXT,
+        tahun_ajaran TEXT,
+
+        nama_kak TEXT,
+
+        logo TEXT,
+
+        nilai_mahir_min INTEGER DEFAULT 76,
+        nilai_cakap_min INTEGER DEFAULT 51,
+        nilai_berkembang_min INTEGER DEFAULT 26,
+        nilai_kurang_min INTEGER DEFAULT 0
+
+    )
+    """)
+    # ==========================
+    # Tabel Absensi
+    # ==========================
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS absensi (
+
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+        id_siswa INTEGER NOT NULL,
+
+        tanggal TEXT,
+
+        semester TEXT,
+
+        pertemuan INTEGER,
+
+        kegiatan TEXT,
+
+        status TEXT,
+
+        keterangan TEXT,
+
+        FOREIGN KEY(id_siswa)
+            REFERENCES siswa(id)
+
+    )
+    """)
+    # ==========================
+    # Upgrade Database Lama
+    # ==========================
     try:
         cursor.execute("""
             ALTER TABLE siswa
@@ -53,10 +126,10 @@ def create_database():
         """)
     except sqlite3.OperationalError:
         pass
+
     conn.commit()
     conn.close()
     
-
 def kosongkan_data_siswa():
 
     conn = get_connection()
@@ -142,7 +215,50 @@ def ambil_semua_siswa():
 
     return data
 
+def ambil_siswa_absensi():
 
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+
+        SELECT
+
+            id,
+            nama,
+            kelas,
+            golongan
+
+        FROM siswa
+
+        WHERE status = 'Aktif'
+
+        ORDER BY kelas, nama
+
+    """)
+
+    data = cursor.fetchall()
+
+    conn.close()
+
+    return data
+def cek_pertemuan_sudah_ada(semester, pertemuan):
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT COUNT(*)
+        FROM absensi
+        WHERE semester = ?
+        AND pertemuan = ?
+    """, (semester, pertemuan))
+
+    jumlah = cursor.fetchone()[0]
+
+    conn.close()
+
+    return jumlah > 0
 def jumlah_siswa():
 
     conn = get_connection()
@@ -200,7 +316,15 @@ def cek_jumlah_siswa():
     conn.close()
     return jumlah
 
-def update_siswa(id_siswa, nisn, no_induk, nama, jk, kelas):
+def update_siswa(
+    id_siswa,
+    nisn,
+    no_induk,
+    nama,
+    jk,
+    kelas,
+    golongan
+):
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -212,6 +336,7 @@ def update_siswa(id_siswa, nisn, no_induk, nama, jk, kelas):
             nama = ?,
             jk = ?,
             kelas = ?,
+            golongan = ?,
             updated_at = ?
         WHERE id = ?
     """, (
@@ -220,6 +345,7 @@ def update_siswa(id_siswa, nisn, no_induk, nama, jk, kelas):
         nama,
         jk,
         kelas,
+        golongan,
         datetime.now().isoformat(),
         id_siswa
     ))
@@ -238,6 +364,7 @@ def ambil_siswa_by_nisn(nisn):
             nama,
             jk,
             kelas,
+            golongan,
             status
         FROM siswa
         WHERE nisn = ?
@@ -278,6 +405,11 @@ def ambil_semua_golongan():
 
     conn.close()
     return data
+def daftar_nama_golongan():
+
+    data = ambil_semua_golongan()
+
+    return [row[1] for row in data]
 def tambah_golongan(nama_golongan):
     conn = get_connection()
     cursor = conn.cursor()
@@ -391,3 +523,70 @@ def tentukan_golongan(nama_kelas):
         return "Penegak"
 
     return ""
+
+def ambil_administrator():
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT *
+        FROM administrator
+        LIMIT 1
+    """)
+
+    data = cursor.fetchone()
+
+    conn.close()
+
+    return data
+
+def simpan_administrator(
+    nama_aplikasi,
+    nama_gudep,
+    nama_pangkalan,
+    tahun_ajaran,
+    nama_kak,
+    logo,
+    nilai_mahir_min,
+    nilai_cakap_min,
+    nilai_berkembang_min,
+    nilai_kurang_min
+):
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    # Hapus data lama
+    cursor.execute("DELETE FROM administrator")
+
+    # Simpan data baru
+    cursor.execute("""
+        INSERT INTO administrator (
+            nama_aplikasi,
+            nama_gudep,
+            nama_pangkalan,
+            tahun_ajaran,
+            nama_kak,
+            logo,
+            nilai_mahir_min,
+            nilai_cakap_min,
+            nilai_berkembang_min,
+            nilai_kurang_min
+        )
+        VALUES (?,?,?,?,?,?,?,?,?,?)
+    """, (
+        nama_aplikasi,
+        nama_gudep,
+        nama_pangkalan,
+        tahun_ajaran,
+        nama_kak,
+        logo,
+        nilai_mahir_min,
+        nilai_cakap_min,
+        nilai_berkembang_min,
+        nilai_kurang_min
+    ))
+
+    conn.commit()
+    conn.close()

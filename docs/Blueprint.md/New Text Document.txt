@@ -1,0 +1,66 @@
+# SCOUTCORE BLUEPRINT
+
+Versi : Demo v0.6
+
+## VISI
+
+ScoutCore adalah aplikasi administrasi Gugusdepan yang sederhana, profesional, mudah digunakan, dan memiliki nilai jual bagi Gugusdepan.
+
+## MOTTO
+
+"Dibuat oleh Pembina, untuk Pembina."
+## MENU SCOUTCORE DEMO
+
+1. Dashboard
+
+2. Data Anggota
+
+3. Master Kelas
+
+4. Master Golongan
+
+5. Absensi
+
+6. Nilai
+
+7. Administrator
+## KEPUTUSAN FINAL
+
+1. Menu "Data Siswa" diubah menjadi "Data Anggota".
+
+2. Menu "Anggota" dihapus karena sudah terwakili oleh Data Anggota.
+
+3. Menu "Master Pembina" diubah menjadi "Administrator".
+
+4. Dashboard menampilkan:
+   - Logo ScoutCore
+   - Smart Scout Administration
+   - Identitas Gugusdepan
+   - Tahun Ajaran
+   - Sapaan "Selamat Datang, Kak ..."
+   - Card informasi dengan icon.
+
+5. Nilai diperoleh dari persentase kehadiran latihan.
+
+6. Interval nilai diatur melalui menu Administrator.
+
+7. Administrator menjadi pusat konfigurasi aplikasi.
+
+8. ScoutCore Demo dikembangkan berdasarkan kebutuhan nyata Pembina Pramuka.
+
+## STANDAR PENGEMBANGAN
+
+1. Setiap Sprint hanya mengerjakan satu tujuan utama.
+
+2. Setiap perubahan wajib mengikuti alur:
+   Coding → Test → Berhasil → Lanjut.
+
+3. Tidak menambah fitur baru sebelum fitur yang sedang dikerjakan selesai.
+
+4. Setiap keputusan arsitektur harus dicatat di Blueprint.
+
+5. Setiap perubahan penting dicatat di Changelog.
+
+6. Seluruh identitas aplikasi (nama aplikasi, Gugusdepan, tahun ajaran, logo, dan interval nilai) diatur melalui menu Administrator.
+
+7. ScoutCore dikembangkan berdasarkan masukan Pembina Pramuka, bukan berdasarkan asumsi pengembang.
